@@ -1,0 +1,7 @@
+   name: ack-mode
+ source: git:https://github.com/scaled/ack-mode.git
+version: 1.0
+descrip: Integrates Ack with Scaled project services.
+ weburl: https://github.com/scaled/ack-mode
+license: New BSD
+ depend: git:https://github.com/scaled/project-service.git
