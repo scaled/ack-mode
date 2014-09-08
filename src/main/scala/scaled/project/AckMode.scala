@@ -34,8 +34,8 @@ class AckMode (env :Env) extends MinorMode(env) {
 
   override def configDefs = AckConfig :: super.configDefs
   override def keymap = Seq(
-    "C-c C-g"     -> "ack-in-project",
-    "S-C-c S-C-g" -> "ack-in-workspace"
+    bind("C-c C-g",     "ack-in-project"),
+    bind("S-C-c S-C-g", "ack-in-workspace")
   )
 
   @Fn("Requests a query string and invokes `ack` on all project files therewith.")
