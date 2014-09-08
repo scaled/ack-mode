@@ -33,9 +33,8 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
 
   override def configDefs = AckConfig :: super.configDefs
   override def stylesheets = stylesheetURL("/ack.css") :: super.stylesheets
-  override def keymap = super.keymap ++ Seq(
-    bind("ENTER", "visit-match")
-  )
+  override def keymap = super.keymap.
+    bind("ENTER", "visit-match");
 
   // attributes we stuff into the buffer during processing
   case class File (path :String)

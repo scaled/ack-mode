@@ -33,10 +33,9 @@ class AckMode (env :Env) extends MinorMode(env) {
   val project = ProjectSpace(env).project(buffer)
 
   override def configDefs = AckConfig :: super.configDefs
-  override def keymap = Seq(
-    bind("C-c C-g",     "ack-in-project"),
-    bind("S-C-c S-C-g", "ack-in-workspace")
-  )
+  override def keymap = super.keymap.
+    bind("C-c C-g",     "ack-in-project").
+    bind("S-C-c S-C-g", "ack-in-workspace");
 
   @Fn("Requests a query string and invokes `ack` on all project files therewith.")
   def ackInProject () :Unit = ackInScope("Search project for:", PScope)
