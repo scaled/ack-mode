@@ -21,7 +21,7 @@ object AckConfig extends Config.Defs {
   sealed trait Scope
   case object PScope extends Scope
   case object WScope extends Scope
-  case class Opts (term :String, opts :Array[String], scope :Scope)
+  case class Opts (term :String, opts :Seq[String], scope :Scope)
 }
 
 @Minor(name="ack", tags=Array("project"),
@@ -46,7 +46,7 @@ class AckMode (env :Env) extends MinorMode(env) {
   private def ackInScope (prompt :String, scope :Scope) {
     editor.mini.read(prompt, wordAt(view.point()), config(searchHistory),
                      Completer.none) onSuccess { term => if (term.length > 0) {
-      val opts = config(ackOpts).split(" ")
+      val opts = config(ackOpts).split(" ").mkSeq
       val bc = editor.bufferConfig(s"*ack: $term*").mode("ack-results", Opts(term, opts, scope))
       // if we have project scope, set the results buffer up as a project buffer
       val bv = (scope match {
