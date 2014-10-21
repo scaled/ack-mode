@@ -9,13 +9,9 @@ import scaled.util.Chars
 
 /** Provides configuration for [[AckMode]]. */
 object AckConfig extends Config.Defs {
-  import EditorConfig._
 
   @Var("Options to pass to `ack`.")
   val ackOpts = key("--heading --smart-case")
-
-  /** The history ring for Ack queries. */
-  val searchHistory = fnKey(cfg => new Ring(cfg(historySize)))
 
   // encapsulates ack arguments
   sealed trait Scope
@@ -43,8 +39,10 @@ class AckMode (env :Env) extends MinorMode(env) {
   @Fn("Requests a query string and invokes `ack` on all workspace files therewith.")
   def ackInWorkspace () :Unit = ackInScope("Search workspace for:", WScope)
 
+  private def searchHistory = Editor.historyRing(editor, "ack-search")
+
   private def ackInScope (prompt :String, scope :Scope) {
-    editor.mini.read(prompt, wordAt(view.point()), config(searchHistory),
+    editor.mini.read(prompt, wordAt(view.point()), searchHistory,
                      Completer.none) onSuccess { term => if (term.length > 0) {
       val opts = config(ackOpts).split(" ").mkSeq
       val bc = editor.bufferConfig(s"*ack: $term*").mode("ack-results", Opts(term, opts, scope))
