@@ -67,7 +67,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     buffer.delete(buffer.start, buffer.end)
     val cmd = Seq("ack") ++ opts.opts ++ Seq("--nocolor", "--nopager", "-x", opts.term)
     env.log.log(cmd.mkString(" "))
-    val proc = SubProcess(SubProcess.Config(cmd.toArray), editor, env.exec, buffer)
+    val proc = SubProcess(SubProcess.Config(cmd.toArray), env.exec, buffer)
 
     // pass the files in the project to ack individually; this allows us to leverage the filtering
     // done by projects which know about which files to ignore
