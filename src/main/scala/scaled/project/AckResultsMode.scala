@@ -56,10 +56,10 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     }
     buffer.tagAt(classOf[LineNo], p0) match {
       case Some(LineNo(lineNo)) => findFile(p0) match {
-        case Some(path) => editor.visitFile(Store(path)).point() = Loc(lineNo, 0)
-        case None => editor.popStatus("Unable to determine file for match.")
+        case Some(path) => window.focus.visitFile(Store(path)).point() = Loc(lineNo, 0)
+        case None       => window.popStatus("Unable to determine file for match.")
       }
-      case _ => editor.popStatus("No match on the current line.")
+      case _ => window.popStatus("No match on the current line.")
     }
   }
 

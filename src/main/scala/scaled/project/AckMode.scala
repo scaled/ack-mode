@@ -39,19 +39,18 @@ class AckMode (env :Env) extends MinorMode(env) {
   @Fn("Requests a query string and invokes `ack` on all workspace files therewith.")
   def ackInWorkspace () :Unit = ackInScope("Search workspace for:", WScope)
 
-  private def searchHistory = Editor.historyRing(editor, "ack-search")
+  private def searchHistory = Workspace.historyRing(wspace, "ack-search")
 
   private def ackInScope (prompt :String, scope :Scope) {
-    editor.mini.read(prompt, wordAt(view.point()), searchHistory,
+    window.mini.read(prompt, wordAt(view.point()), searchHistory,
                      Completer.none) onSuccess { term => if (term.length > 0) {
-      val opts = config(ackOpts).split(" ").mkSeq
-      val bc = editor.bufferConfig(s"*ack: $term*").mode("ack-results", Opts(term, opts, scope))
+      val opts = Opts(term, config(ackOpts).split(" ").mkSeq, scope)
       // if we have project scope, set the results buffer up as a project buffer
-      val bv = (scope match {
-        case PScope => bc.tags("project").state(project.asState)
-        case WScope => bc
-      }).create()
-      editor.visitBuffer(bv.buffer)
+      val state = scope match {
+        case PScope => project.bufferState("ack-results", opts)
+        case WScope => State.inits(Mode.Hint("ack-results", opts))
+      }
+      window.focus.visit(wspace.createBuffer(s"*ack: $term*", state))
     }}
   }
 
