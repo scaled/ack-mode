@@ -26,7 +26,7 @@ class AckMode (env :Env) extends MinorMode(env) {
   import AckConfig._
   import Chars._
 
-  val project = ProjectSpace(env).project(buffer)
+  val project = Project(buffer)
 
   override def configDefs = AckConfig :: super.configDefs
   override def keymap = super.keymap.
