@@ -29,8 +29,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
   import AckConfig._
   import AckResultsConfig._
 
-  val project = Project(buffer)
-  import project.pspace
+  val pspace = ProjectSpace(wspace)
 
   override def configDefs = AckConfig :: super.configDefs
   override def stylesheets = stylesheetURL("/ack.css") :: super.stylesheets
@@ -69,11 +68,10 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     val cmd = Seq("ack") ++ opts.opts ++ Seq("--nocolor", "--nopager", "-x", opts.term)
     env.log.log(cmd.mkString(" "))
     val proc = SubProcess(SubProcess.Config(cmd.toArray), env.exec, buffer)
-
     // pass the files in the project to ack individually; this allows us to leverage the filtering
     // done by projects which know about which files to ignore
     val ps = opts.scope match {
-      case PScope => Seq(project)
+      case PScope => Seq(Project(buffer))
       case WScope => pspace.allProjects.map(i => pspace.projectIn(i._1))
     }
     ps foreach(_.onFiles(f => proc.send(f.toString)))
