@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 import scala.annotation.tailrec
 import scaled._
 import scaled.major.ReadingMode
-import scaled.util.SubProcess
+import scaled.util.{Errors, SubProcess}
 
 /** Provides configuration for [[AckResultsMode]]. */
 object AckResultsConfig {
@@ -36,38 +36,97 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
   override def keymap = super.keymap.
     bind("visit-match", "ENTER");
 
-  // attributes we stuff into the buffer during processing
-  case class File (path :String)
-  case class LineNo (lineNo :Int)
-
-  // listen for additions to the buffer and style them as they come in
-  buffer.edited.onValue { _ match {
-    case Buffer.Insert(start, end) =>
-      var l = start ; while (l < end) { styleLine(l) ; l = l.nextStart }
-    case _ => // ignore
-  }}
+  case class VisitTag (visit :Visit) extends Line.Tag
+  private val noMatch = VisitTag(new Visit() {
+    def apply (window :Window) = window.popStatus("No match on the current line.")
+  })
 
   @Fn("Visits the match on the current line.")
   def visitMatch () {
-    val p0 = view.point().atCol(0)
-    @tailrec def findFile (loc :Loc) :Option[String] = buffer.tagAt(classOf[File], loc) match {
-      case Some(File(path)) => Some(path)
-      case _ => if (loc.row == 0) None else findFile(loc.prevL)
-    }
-    buffer.tagAt(classOf[LineNo], p0) match {
-      case Some(LineNo(lineNo)) => findFile(p0) match {
-        case Some(path) => window.focus.visitFile(Store(path)).point() = Loc(lineNo, 0)
-        case None       => window.popStatus("Unable to determine file for match.")
-      }
-      case _ => window.popStatus("No match on the current line.")
-    }
+    buffer.line(view.point()).lineTag(noMatch).visit.apply(window)
   }
+
+  private val NumLineP = Pattern.compile("""(\d+):(.*)""")
+  private val FileNumLineP = Pattern.compile("""([^:]+):(\d+):(.*)""")
+  private val TermM = Matcher.on(opts.term)
 
   private def refresh () {
     buffer.delete(buffer.start, buffer.end)
     val cmd = Seq("ack") ++ opts.opts ++ Seq("--nocolor", "--nopager", "-x", opts.term)
     env.log.log(cmd.mkString(" "))
-    val proc = SubProcess(SubProcess.Config(cmd.toArray), env.exec, buffer)
+
+    import SubProcess._
+    val events = Signal[Event](env.exec.uiExec)
+    events.onValue(new Function1[Event,Unit]() {
+      val visits = Seq.builder[Visit]()
+      var file = ""
+
+      def apply (event :Event) = event match {
+        case Output(text, _)   => if (text.length > 0) process(text)
+        case Complete(isErr)   => if (!isErr) finish()
+        case Failure(cause, _) => buffer.append(Line.fromTextNL(Errors.stackTraceToString(cause)))
+      }
+
+      def process (text :String) {
+        val lb = Line.builder(text)
+
+        def xFile (start :Int, end :Int) = {
+          lb.withStyle(pathStyle, start, end)
+          text.substring(start, end)
+        }
+        def xLineNo (start :Int, end :Int) = {
+          lb.withStyle(lineNoStyle, start, end)
+          text.substring(start, end).toInt-1
+        }
+
+        val m = NumLineP.matcher(text) // '(num):(line)'
+        if (m.matches) {
+          append(xLineNo(m.start(1), m.end(1)), lb.build(), m.start(2))
+
+        } else {
+          val m = FileNumLineP.matcher(text) // '(file):(num):(line)'
+          if (m.matches) {
+            file = xFile(m.start(1), m.end(1))
+            append(xLineNo(m.start(2), m.end(2)), lb.build(), m.start(3))
+
+          } else {
+            // if it's neither 'num:line' or 'file:num:line' then it's 'file'
+            file = xFile(0, text.length)
+            buffer.split(buffer.insert(buffer.end, lb.build()))
+          }
+        }
+      }
+
+      def append (lineNo :Int, line :Line, mstart :Int) {
+        // append the line (and a newline) to the buffer
+        val loc = buffer.end
+        buffer.split(buffer.insert(loc, line))
+
+        // style the matches in the line and add visits for them
+        var ii = line.indexOf(TermM, mstart) ; var first = true
+        while (ii != -1) {
+          val visit = Visit(Store(file), Loc(lineNo, ii-mstart))
+          visits += visit
+          // if this is the first match, tag the line with its visit
+          if (first) {
+            buffer.setLineTag(loc, VisitTag(visit))
+            first = false
+          }
+
+          val end = ii+TermM.matchLength
+          buffer.addStyle(matchStyle, loc.atCol(ii), loc.atCol(end))
+          ii = line.indexOf(TermM, end)
+        }
+      }
+
+      def finish () {
+        window.visits() = new VisitList("match", visits.build()) {
+          override def things = "matches"
+        }
+      }
+    })
+
+    val proc = new SubProcess(Config(cmd.toArray), events)
     // pass the files in the project to ack individually; this allows us to leverage the filtering
     // done by projects which know about which files to ignore
     val ps = opts.scope match {
@@ -76,64 +135,6 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     }
     ps foreach(_.onFiles(f => proc.send(f.toString)))
     proc.close()
-    proc.waitFor()
-
-    // TODO: wait for the process to terminate on a background thread, post results?
-  }
-
-  private def tagPath (line :LineV, loc :Loc, end :Int) {
-    buffer.addStyle(pathStyle, loc, loc.atCol(end))
-    buffer.addTag(File(line.sliceString(loc.col, end)), loc.atCol(0), loc.atCol(1))
-  }
-
-  private def tagLineNo (line :LineV, loc :Loc, end :Int) {
-    buffer.addStyle(lineNoStyle, loc, loc.atCol(end))
-    buffer.addTag(LineNo(line.sliceString(loc.col, end).toInt-1), loc.atCol(0), loc.atCol(1))
-  }
-
-  private def styleLine (loc :Loc) {
-    val line = buffer.line(loc)
-    if (line.length > 0) {
-      // if it's neither a 'num:line' or a 'file:num:line' then it must be a 'file'
-      if (!styleNumLine(loc, line) && !styleFileNumLine(loc, line)) {
-        tagPath(line, loc.atCol(0), line.length)
-      }
-    }
-  }
-
-  private val NumLineP = Pattern.compile("""(\d+):(.*)""")
-  private def styleNumLine (loc :Loc, line :LineV) :Boolean = {
-    val m = NumLineP.matcher(line)
-    if (!m.matches) false
-    else {
-      tagLineNo(line, loc.atCol(m.start(1)), m.end(1))
-      styleMatches(loc, line, m.start(2))
-      true
-    }
-  }
-
-  private val FileNumLineP = Pattern.compile("""([^:]+):(\d+):(.*)""")
-  private def styleFileNumLine (loc :Loc, line :LineV) :Boolean = {
-    val m = FileNumLineP.matcher(line)
-    if (!m.matches) false
-    else {
-      tagPath(line, loc.atCol(m.start(1)), m.end(1))
-      tagLineNo(line, loc.atCol(m.start(2)), m.end(2))
-      styleMatches(loc, line, m.start(2))
-      true
-    }
-  }
-
-  private val TermM = Matcher.on(opts.term)
-  private def styleMatches (loc :Loc, line :LineV, start :Int) {
-    @tailrec @inline def loop (col :Int) :Unit = line.indexOf(TermM, col) match {
-      case -1 => // done
-      case ii =>
-        val end = ii+TermM.matchLength
-        buffer.addStyle(matchStyle, loc.atCol(ii), loc.atCol(end))
-        loop(end)
-    }
-    loop(start)
   }
 
   refresh() // run the search for the first time
