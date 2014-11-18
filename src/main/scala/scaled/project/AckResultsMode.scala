@@ -120,7 +120,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
       }
 
       def finish () {
-        window.visits() = new VisitList("match", visits.build()) {
+        window.visits() = new Visit.List("match", visits.build()) {
           override def things = "matches"
         }
       }
