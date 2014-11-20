@@ -36,8 +36,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
   override def keymap = super.keymap.
     bind("visit-match", "ENTER");
 
-  case class VisitTag (visit :Visit) extends Line.Tag
-  private val noMatch = VisitTag(new Visit() {
+  private val noMatch = Visit.Tag(new Visit() {
     override protected def go (window :Window) = window.popStatus("No match on the current line.")
   })
 
@@ -109,7 +108,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
           visits += visit
           // if this is the first match, tag the line with its visit
           if (first) {
-            buffer.setLineTag(loc, VisitTag(visit))
+            buffer.setLineTag(loc, Visit.Tag(visit))
             first = false
           }
 
