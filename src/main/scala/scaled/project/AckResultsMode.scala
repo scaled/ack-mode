@@ -38,12 +38,12 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
 
   case class VisitTag (visit :Visit) extends Line.Tag
   private val noMatch = VisitTag(new Visit() {
-    def apply (window :Window) = window.popStatus("No match on the current line.")
+    override protected def go (window :Window) = window.popStatus("No match on the current line.")
   })
 
   @Fn("Visits the match on the current line.")
   def visitMatch () {
-    buffer.line(view.point()).lineTag(noMatch).visit.apply(window)
+    buffer.line(view.point()).lineTag(noMatch).visit(window)
   }
 
   private val NumLineP = Pattern.compile("""(\d+):(.*)""")
