@@ -130,7 +130,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     // done by projects which know about which files to ignore
     val ps = opts.scope match {
       case PScope => Seq(Project(buffer))
-      case WScope => pspace.allProjects.map(i => pspace.projectIn(i._1))
+      case WScope => pspace.allProjects.flatMap(i => pspace.projectIn(i._1))
     }
     ps foreach(_.onFiles(f => proc.send(f.toString)))
     proc.close()
