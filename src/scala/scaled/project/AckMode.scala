@@ -50,7 +50,7 @@ class AckMode (env :Env) extends MinorMode(env) {
         case PScope => project.bufferState("ack-results", opts)
         case WScope => State.inits(Mode.Hint("ack-results", opts))
       }
-      window.focus.visit(wspace.createBuffer(s"*ack: $term*", state))
+      window.focus.visit(wspace.createBuffer(Store.scratch(s"*ack: $term*", buffer.store), state))
     }}
   }
 
