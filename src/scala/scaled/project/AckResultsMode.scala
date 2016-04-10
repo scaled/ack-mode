@@ -56,11 +56,11 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
 
     import SubProcess._
     val events = Signal[Event](env.exec.uiExec)
-    events.onValue(new Function1[Event,Unit]() {
+    events.onValue(new JConsumer[Event]() {
       val visits = Seq.builder[Visit]()
       var file = ""
 
-      def apply (event :Event) = event match {
+      def accept (event :Event) = event match {
         case Output(text, _)   => if (text.length > 0) process(text)
         case Complete(isErr)   => if (!isErr) finish()
         case Failure(cause, _) => buffer.append(Line.fromTextNL(Errors.stackTraceToString(cause)))
