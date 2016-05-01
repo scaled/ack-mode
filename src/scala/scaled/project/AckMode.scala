@@ -20,7 +20,7 @@ object AckConfig extends Config.Defs {
   case class Opts (term :String, opts :Seq[String], scope :Scope)
 }
 
-@Minor(name="ack", tags=Array("project"),
+@Minor(name="ack", stateTypes=Array(classOf[Project]),
        desc="""A minor mode that provides Ack searching of Scaled projects.""")
 class AckMode (env :Env) extends MinorMode(env) {
   import AckConfig._
