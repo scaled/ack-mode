@@ -42,7 +42,7 @@ class AckMode (env :Env) extends MinorMode(env) {
   private def searchHistory = Workspace.historyRing(wspace, "ack-search")
 
   private def ackInScope (prompt :String, scope :Scope) {
-    window.mini.read(prompt, wordAt(view.point()), searchHistory,
+    window.mini.read(prompt, wordAt(buffer, view.point()), searchHistory,
                      Completer.none) onSuccess { term => if (term.length > 0) {
       val opts = Opts(term, config(ackOpts).split(" ").mkSeq, scope)
       // if we have project scope, set the results buffer up as a project buffer
@@ -52,15 +52,5 @@ class AckMode (env :Env) extends MinorMode(env) {
       }
       window.focus.visit(wspace.createBuffer(Store.scratch(s"*ack: $term*", buffer.store), state))
     }}
-  }
-
-  /** Returns the "word" at the specified location in the buffer. */
-  private def wordAt (loc :Loc) :String = {
-    val p = view.point()
-    val pstart = buffer.scanBackward(isNotWord, p)
-    val start = if (isWord(buffer.charAt(pstart))) pstart else buffer.forward(pstart, 1)
-    val end = if (!isWord(buffer.charAt(start))) start
-              else buffer.scanForward(isNotWord, p)
-    buffer.region(start, end).map(_.asString).mkString
   }
 }
