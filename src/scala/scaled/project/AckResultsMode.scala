@@ -47,7 +47,9 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
 
   private val NumLineP = Pattern.compile("""(\d+):(.*)""")
   private val FileNumLineP = Pattern.compile("""([^:]+):(\d+):(.*)""")
-  private val TermM = Matcher.regexp(opts.term)
+  private val TermM = try Matcher.regexp(opts.term) catch {
+    case e :Exception => { window.emitError(e) ; Matcher.exact("ERROR") }
+  }
 
   private def refresh () {
     buffer.delete(buffer.start, buffer.end)
