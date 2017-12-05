@@ -39,7 +39,7 @@ class AckMode (env :Env) extends MinorMode(env) {
   @Fn("Requests a query string and invokes `ack` on all workspace files therewith.")
   def ackInWorkspace () :Unit = ackInScope("Search workspace for:", WScope)
 
-  private def searchHistory = Workspace.historyRing(wspace, "ack-search")
+  private def searchHistory = wspace.historyRing("ack-search")
 
   private def ackInScope (prompt :String, scope :Scope) {
     window.mini.read(prompt, wordAt(buffer, view.point()), searchHistory,
