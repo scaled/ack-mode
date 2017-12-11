@@ -57,7 +57,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     env.log.log(cmd.mkString(" "))
 
     import SubProcess._
-    val events = Signal[Event](window.exec.uiExec)
+    val events = Signal[Event](window.exec.ui)
     events.onValue(new JConsumer[Event]() {
       val visits = Seq.builder[Visit]()
       var file = ""
