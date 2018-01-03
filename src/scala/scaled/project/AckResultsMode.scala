@@ -134,7 +134,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
       case PScope => Seq(Project(buffer))
       case WScope => pspace.allProjects.flatMap(i => pspace.projectIn(i._1))
     }
-    ps foreach(_.onFiles(f => proc.send(f.toString)))
+    ps foreach(_.files.onFiles(f => proc.send(f.toString)))
     proc.close()
   }
 
