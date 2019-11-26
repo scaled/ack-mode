@@ -41,7 +41,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
   })
 
   @Fn("Visits the match on the current line.")
-  def visitMatch () {
+  def visitMatch () :Unit = {
     buffer.line(view.point()).lineTag(noMatch).visit(window)
   }
 
@@ -51,7 +51,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
     case e :Exception => { window.exec.handleError(e) ; Matcher.exact("ERROR") }
   }
 
-  private def refresh () {
+  private def refresh () :Unit = {
     buffer.delete(buffer.start, buffer.end)
     val cmd = Seq("ack") ++ opts.opts ++ Seq("--nocolor", "--nopager", "-x", opts.term)
     env.log.log(cmd.mkString(" "))
@@ -68,7 +68,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
         case Failure(cause, _) => buffer.append(Line.fromTextNL(Errors.stackTraceToString(cause)))
       }
 
-      def process (text :String) {
+      def process (text :String) :Unit = {
         val lb = Line.builder(text)
 
         def xFile (start :Int, end :Int) = {
@@ -98,7 +98,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
         }
       }
 
-      def append (lineNo :Int, line :Line, mstart :Int) {
+      def append (lineNo :Int, line :Line, mstart :Int) :Unit = {
         // append the line (and a newline) to the buffer
         val loc = buffer.end
         buffer.split(buffer.insert(loc, line))
@@ -120,7 +120,7 @@ class AckResultsMode (env :Env, opts :AckConfig.Opts) extends ReadingMode(env) {
         }
       }
 
-      def finish () {
+      def finish () :Unit = {
         window.visits() = new Visit.List("match", visits.build()) {
           override def things = "matches"
         }

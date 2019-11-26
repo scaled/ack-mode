@@ -41,7 +41,7 @@ class AckMode (env :Env) extends MinorMode(env) {
 
   private def searchHistory = wspace.historyRing("ack-search")
 
-  private def ackInScope (prompt :String, scope :Scope) {
+  private def ackInScope (prompt :String, scope :Scope) :Unit = {
     window.mini.read(prompt, wordAt(buffer, view.point()), searchHistory,
                      Completer.none) onSuccess { term => if (term.length > 0) {
       val opts = Opts(term, config(ackOpts).split(" ").mkSeq, scope)
